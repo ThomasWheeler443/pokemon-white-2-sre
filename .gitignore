@@ -1,0 +1,44 @@
+# Ignore any rom files in rom
+rom/*
+!rom/README.md
+
+# Ignore extracted assets and overlays
+assets/
+overlays/
+
+# Ignore any generated build or output
+build/
+out/
+
+# Ignore any files from code compilation
+*.o
+*.obj
+*.so
+*.a
+*.elf
+*.exe
+*.lib
+*.out
+
+# Ignore any IDE specific files
+.vscode/
+.idea/
+
+# Ignore temporary files or caches
+*.tmp
+tmp/
+*.log
+*.swp
+*.bak
+.cache/
+
+# Ignore Linux files
+.fuse_hidden
+.Trash-*
+.nfs*
+.directory*
+
+# Ignore Windows files
+Thumbs.db
+*.stackdump
+$RECYCLE.BIN/
