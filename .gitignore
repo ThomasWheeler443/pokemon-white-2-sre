@@ -5,6 +5,7 @@ rom/*
 # Ignore extracted assets and overlays
 assets/
 overlays/
+data/
 
 # Ignore any generated build or output
 build/
