@@ -36,6 +36,10 @@ class ByteReader:
         bytes = self.file.read(len)
         return bytes
     
+    # Get the current offset
+    def curr_offset(self):
+        return self.file.tell()
+     
     # Close parser
     def close(self):
         self.file.close()
