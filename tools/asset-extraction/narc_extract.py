@@ -5,9 +5,13 @@
 # Into the base contents
 
 from asset_tools.narc import Narc
+import sys
 
 def main():
-    pass
+    narc = Narc(sys.argv[1], sys.argv[2])
+    narc.print()
+    narc.extract()
+    narc.close()
 
 if __name__ == "__main__":
     main()

@@ -2,6 +2,7 @@
 # thomwheeler04@vt.edu - thomaswheeler443@gmail.com
 #
 # Helps parse binary files
+import ctypes
 
 class ByteReader:
     def __init__(self, file_name):
@@ -15,12 +16,14 @@ class ByteReader:
     # Read the next value as a short
     def read_short(self, byteorder='little'):
         bytes = self.file.read(2)
-        return int.from_bytes(bytes, byteorder=byteorder)
+        val = int.from_bytes(bytes, byteorder=byteorder)
+        return ctypes.c_ushort(val).value
     
     # Read the next value as a long
     def read_long(self, byteorder='little'):
         bytes = self.file.read(4)
-        return int.from_bytes(bytes, byteorder=byteorder)
+        val = int.from_bytes(bytes, byteorder=byteorder)
+        return ctypes.c_ulong(val).value
     
     # Read the next value as a utf8 string
     def read_string(self, len, encoding='utf-8'):
