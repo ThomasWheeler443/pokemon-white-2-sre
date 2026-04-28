@@ -6,6 +6,7 @@
 # Using documentation from http://problemkaputt.de/gbatek.htm#dscartridgenitroromandnitroarcfilesystems
 
 import os
+import sys
 from asset_tools.reader import ByteReader
 from asset_tools.formats import Magic, Magic_ID
 from asset_tools.raw import RawFile
@@ -20,6 +21,8 @@ class _FNT:
     first_file_id: int = -1
     num_dir: int = -1
     sub_parent_id: int = -1
+    name: str = ""
+    sub_dirs: list[str] = field(default_factory=list)
     sub_tables: list[_FNTSubTable] = field(default_factory=list)
 
 class FNT_ST_Type(Enum):
@@ -48,6 +51,8 @@ class Narc():
         self.out_dir = out_dir + os.sep
         Path(self.out_dir).mkdir(parents=True, exist_ok=True)
         
+        self.file_names = []
+
         # Read header info
         # See link above for details
         self.narc_magic = self.reader.read_string(4)
@@ -74,12 +79,12 @@ class Narc():
         self.fat = self._read_fat(self.btaf_num_files)
         
         # Read File Name Table Block (BTNF)
+        btnf_base = self.reader.curr_offset()
         self.btnf_magic = self.reader.read_string(4)
         self.btnf_size = self.reader.read_long()
-        self.fnt = self._read_fnt(first=True)
-        
-        # Get padding
-        self.padding = self._get_pad()
+        self.fnt = self._read_fnt(self.reader.curr_offset())
+
+        self.reader.skip(btnf_base + self.btnf_size, whence=0)
         
         # get file image block
         self.gmif_name = self.reader.read_string(4)
@@ -101,19 +106,51 @@ class Narc():
         return fat
     
     # Helper to help read FNT (File Name Table)
-    def _read_fnt(self, first=False):
+    def _read_fnt(self, fnt_base, first=True, name=""):
+        fnts = []
+
         fnt = _FNT()
+        fnt.name = name
         fnt.sub_table_offset = self.reader.read_long()
         fnt.first_file_id = self.reader.read_short()
+
         if (first):
             fnt.num_dir = self.reader.read_short()
         else:
             fnt.sub_parent_id = self.reader.read_short()
+
+        fnts.append(fnt)
+ 
+        # Test if subtables exist
+        test = self.reader.read_string(4);
+        self.reader.skip(-4)
+        if test == "GMIF":
+            return fnts
+
+        self.reader.skip(fnt_base + fnt.sub_table_offset, whence=0)
+
+        fnt.sub_dirs = []
+
         # Read sub-tables
-        for i in range(fnt.num_dir-1):
-            fnt.sub_tables.append(self._read_fnt_subtable())
-        
-        return fnt
+        while (1):
+            st = self._read_fnt_subtable()
+            fnt.sub_tables.append(st)
+            
+            if st.type == FNT_ST_Type.SUB_TABLE_END:
+                break;
+            elif st.type == FNT_ST_Type.FILE_ENTRY:
+                self.file_names.append(f"{name}{st.name}")
+            elif st.type == FNT_ST_Type.SUB_DIR_ENTRY:
+                fnt.sub_dirs.append(f"{name}{st.name}/")
+                Path(f"{self.out_dir}/{fnt.sub_dirs[-1]}").mkdir(parents=True, exist_ok=True)
+
+        self.reader.skip(fnt_base + 8, whence=0)
+
+        for i in range(fnt.num_dir - 1):
+            d_name = fnt.sub_dirs[i] 
+            fnts += self._read_fnt(fnt_base, first=False, name=d_name)
+
+        return fnts
     
     def _read_fnt_subtable(self):
         sub = _FNTSubTable()
@@ -190,23 +227,26 @@ class Narc():
         print(f"    BTNF Chunk Size: {self.btnf_size} bytes")
         
         # FNT
-        print()
-        print(f"    FNT Directory Table: ")
-        print(f"      Offset to Sub-table: +{self.fnt.sub_table_offset} bytes")
-        print(f"      First File ID: {self.fnt.first_file_id}")
-        print(f"      Number of Directories: {self.fnt.num_dir}")
-        
-        # Loop through File Name Subtables
-        for i, table in enumerate(self.fnt.sub_tables):
+        for i, tab in enumerate(self.fnt):
             print()
-            print(f"      Sub Table:")
-            print(f"        Type: {table.type}")
-            print(f"        Length: {table.len}")
-            print(f"        File/Dir Name: {table.name}")
-            if (table.type == FNT_ST_Type.SUB_DIR_ENTRY):
-                print(f"        Sub Directory ID: {table.sub_dir_id}")
+            print(f"    FNT Directory Table {i + 1}:")
+            print(f"      Offset to Sub-table: +{tab.sub_table_offset} bytes")
+            print(f"      First File ID: {tab.first_file_id}")
+            print(f"      Number of Directories: {tab.num_dir}")
             
-        print(f"  Padding: {self.padding}")
+            # Loop through File Name Subtables
+            for j, s_tab in enumerate(tab.sub_tables):
+                print()
+                print(f"      Sub Table {j}:")
+                print(f"        Type: {s_tab.type}")
+                print(f"        Length: {s_tab.len}")
+                if (s_tab.type == FNT_ST_Type.FILE_ENTRY):
+                    self.file_names.append(s_tab.name)
+                    print(f"        File Name: {s_tab.name}")
+                
+                elif (s_tab.type == FNT_ST_Type.SUB_DIR_ENTRY): 
+                    print(f"        Directory Name: {s_tab.name}")
+                    print(f"        Sub Directory ID: {s_tab.sub_dir_id}") 
         
         # Chunk size
         print()
@@ -220,12 +260,19 @@ class Narc():
         print(f"  Image Base: {hex(self.image_base)}")
         print(f"  Chunks:")
         for i, chunk in enumerate(self.chunks):
-            name, f_type = Magic_ID(chunk[0])
+            type_name, f_type = Magic_ID(chunk[0])
             if f_type == RawFile:
                 bak_name, bak_type = Magic_ID(chunk[1])
                 if bak_type != RawFile:
-                    name = bak_name
-            print(f"    Chunk {i+1}: {name}")
+                    type_name = bak_name
+
+            print(f"    Chunk {i+1}: ")
+            try:
+                print(f"      Name: {self.file_names[i]}")
+            except:    
+                print(f"      Name: Undefined")
+
+            print(f"      Type: {type_name}")
             
     
     def _carve(self, fat):
@@ -244,8 +291,11 @@ class Narc():
                 file_type = backup_type
             if file_type == None:    
                 continue
-            
-            file_name = f"{self.out_dir}chunk_{i+1}{file_type.ext}"
+            try:
+                file_name = f"{self.out_dir}{self.file_names[i]}"
+            except:
+                file_name = f"{self.out_dir}chunk_{i+1}{file_type.ext}"
+
             out = file_type()
             out.create(data, file_name)
             out.extract()

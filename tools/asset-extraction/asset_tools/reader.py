@@ -26,9 +26,13 @@ class ByteReader:
         return ctypes.c_ulong(val).value
     
     # Read the next value as a utf8 string
-    def read_string(self, len, encoding='utf-8'):
-        bytes = self.file.read(len)
-        return bytes.decode(encoding)
+    def read_string(self, num, encoding='utf-8'):
+        bytes = self.file.read(num)
+        try:
+            str = bytes.decode(encoding)
+        except:
+            return "ERROR_VAL"
+        return str
     
     # Skip a certain number of bytes
     def skip(self, len, whence=1):
