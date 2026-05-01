@@ -118,7 +118,7 @@ class UnkFile01(RawFile):
     ext = ".unk01"    
     
 MagicLookup2 = {
-    #Magic.FILE_01.value: ("Unknown '01' format", UnkFile01)
+    Magic.FILE_01.value: ("Unknown '01' format", UnkFile01)
 }
     
 def Magic_ID(byt):     

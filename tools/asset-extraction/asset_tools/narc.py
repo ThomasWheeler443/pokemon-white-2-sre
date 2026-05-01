@@ -294,7 +294,7 @@ class Narc():
             try:
                 file_name = f"{self.out_dir}{self.file_names[i]}"
             except:
-                file_name = f"{self.out_dir}chunk_{i+1}{file_type.ext}"
+                file_name = f"{self.out_dir}chunk_{(i+1):03d}{file_type.ext}"
 
             out = file_type()
             out.create(data, file_name)
