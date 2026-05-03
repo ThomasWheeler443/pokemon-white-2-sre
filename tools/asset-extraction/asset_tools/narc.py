@@ -8,7 +8,7 @@
 import os
 import sys
 from asset_tools.reader import ByteReader
-from asset_tools.formats import Magic, Magic_ID
+from asset_tools.formats import Magic, Magic_ID, LZ11Compressed, LZSSCompressed
 from asset_tools.raw import RawFile
 from dataclasses import dataclass, field
 from enum import Enum, auto
@@ -287,14 +287,21 @@ class Narc():
             data = self._carve(fat)
             _, file_type = Magic_ID(data[:4])
             _, backup_type = Magic_ID(data[5:9])
-            if file_type == RawFile and backup_type != RawFile:
-                file_type = backup_type
+            
             if file_type == None:    
                 continue
+            elif backup_type != None and \
+              (file_type == LZ11Compressed or file_type == LZSSCompressed) and \
+              backup_type != RawFile:
+                
+                ext = backup_type.ext + file_type.ext
+            else:
+                ext = file_type.ext
+
             try:
                 file_name = f"{self.out_dir}{self.file_names[i]}"
             except:
-                file_name = f"{self.out_dir}chunk_{(i+1):03d}{file_type.ext}"
+                file_name = f"{self.out_dir}chunk_{(i+1):03d}{ext}"
 
             out = file_type()
             out.create(data, file_name)

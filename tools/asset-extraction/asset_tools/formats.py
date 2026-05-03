@@ -149,7 +149,6 @@ def Magic_ID(byt):
         except:
             try: 
                 pair = MagicLookup1[byt[:1]]
-                print(f"FOUND FILE !!!!!!!")
             except:
                 return f"Raw Data {bytes(byt)}", RawFile
     
