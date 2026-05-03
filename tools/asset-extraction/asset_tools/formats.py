@@ -29,6 +29,9 @@ class Magic(Enum):
     BASIC_TEXTURE_PAT_ANIM = b'BTP0'
     
     FILE_01 = b'\x01\x00'
+
+    LZSS_COMP = b'\x10'
+    LZ11_COMP = b'\x11'
     
 # Classes with minimal implementation
 class NitroColorRes(RawFile):
@@ -90,7 +93,14 @@ class BasicVisibilityAnim(RawFile):
     
 class BasicTexturePatternAnim(RawFile):
     ext = ".BTP0"
-    
+
+class LZSSCompressed(RawFile):
+    ext = ".lz77"
+
+class LZ11Compressed(RawFile):
+    ext = ".lz11"
+
+
 MagicLookup4 = {
     Magic.NITRO_COLOR_RES.value: ("Nitro Color Resource", NitroColorRes),
     Magic.NITRO_CHAR_GRAPHIC_RES.value: ("Nitro Char Graphics Resource", NitroCharGraphicRes),
@@ -120,6 +130,11 @@ class UnkFile01(RawFile):
 MagicLookup2 = {
     Magic.FILE_01.value: ("Unknown '01' format", UnkFile01)
 }
+
+MagicLookup1 = {
+    Magic.LZSS_COMP.value: ("Potential LZSS Compressed File", LZSSCompressed),
+    Magic.LZ11_COMP.value: ("Potential LZ11 Compressed File", LZ11Compressed)
+}
     
 def Magic_ID(byt):     
     
@@ -132,7 +147,11 @@ def Magic_ID(byt):
         try:
             pair = MagicLookup2[byt[:2]]
         except:
-            return f"Raw Data {bytes(byt)}", RawFile
+            try: 
+                pair = MagicLookup1[byt[:1]]
+                print(f"FOUND FILE !!!!!!!")
+            except:
+                return f"Raw Data {bytes(byt)}", RawFile
     
     return pair[0], pair[1]
 

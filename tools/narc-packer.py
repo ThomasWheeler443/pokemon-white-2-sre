@@ -120,7 +120,7 @@ def main():
     img_base = len(narc_buff)
 
     # Loop through files
-    for file_str, fat_pos in file_list.items():
+    for file_str, fat_pos in sorted(file_list.items()):
 
         print(f"Writing {file_str} to Nitro Archive..")
 

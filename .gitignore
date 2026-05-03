@@ -6,6 +6,7 @@ rom/*
 assets/
 overlays/
 data/
+ex/
 
 # Ignore any generated build or output
 build/
