@@ -1,5 +1,8 @@
 # Pokemon White 2 Reverse Engineering project
 
+The link to the GitHub Page can be found here:
+https://github.com/ThomasWheeler443/pokemon-white-2-sre/
+
 Reverse Engineering project for Pokémon White 2 for the NintendoDS
 A ROM dump of Pokemon White 2 is required to use this project and will not be provided.
 
